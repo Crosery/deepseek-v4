@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DeepSeek V4 — 智能的边界</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Bebas+Neue&display=swap" rel="stylesheet" />
+<style>
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Colors — warm editorial palette, NOT AI blue-purple */
+  --color-bg: oklch(99% 0.003 70);
+  --color-surface: oklch(96.5% 0.006 70);
+  --color-surface-2: oklch(93% 0.01 70);
+  --color-surface-3: oklch(88% 0.012 70);
+  --color-primary: oklch(50% 0.22 28);
+  --color-primary-dark: oklch(40% 0.2 28);
+  --color-primary-light: oklch(70% 0.16 28);
+  --color-primary-bg: oklch(92% 0.06 28);
+  --color-secondary: oklch(42% 0.14 265);
+  --color-secondary-light: oklch(68% 0.1 265);
+  --color-accent: oklch(68% 0.2 82);
+  --color-accent-light: oklch(88% 0.08 82);
+  --color-text: oklch(12% 0.015 60);
+  --color-text-secondary: oklch(35% 0.015 60);
+  --color-text-muted: oklch(55% 0.01 60);
+  --color-border: oklch(88% 0.008 70);
+  --color-border-strong: oklch(78% 0.01 70);
+
+  /* Typography */
+  --font-display: 'Bebas Neue', 'Arial Black', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', monospace;
+
+  /* Spacing (4pt base) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+  --space-5xl: 128px;
+
+  /* Timing */
+  --dur-fast: 150ms;
+  --dur-base: 300ms;
+  --dur-slow: 500ms;
+  --dur-enter: 700ms;
+
+  /* Easing */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Container */
+  --content-max: 1200px;
+  --content-padding: clamp(20px, 4vw, 48px);
+}
+
+html {
+  font-size: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   UTILITY
+   ============================================ */
+.container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+}
+
+.container--wide {
+  max-width: calc(var(--content-max) + 160px);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1vw, 0.875rem);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  padding: 6px 14px;
+  border: 1px solid var(--color-primary-bg);
+  border-radius: 100px;
+  background: var(--color-primary-bg);
+}
+
+.tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   REVEAL ANIMATION
+   ============================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+}
+
+.reveal--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 100ms; }
+.reveal-delay-2 { transition-delay: 200ms; }
+.reveal-delay-3 { transition-delay: 300ms; }
+.reveal-delay-4 { transition-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ============================================
+   NAV
+   ============================================ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: var(--space-lg) var(--content-padding);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background var(--dur-base) ease, box-shadow var(--dur-base) ease;
+  mix-blend-mode: difference;
+}
+
+.nav--scrolled {
+  background: var(--color-bg);
+  box-shadow: 0 1px 0 var(--color-border);
+  mix-blend-mode: normal;
+}
+
+.nav__logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.nav--scrolled .nav__logo {
+  color: var(--color-text);
+}
+
+.nav__logo-accent {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  display: inline-block;
+}
+
+.nav__links {
+  display: flex;
+  gap: var(--space-xl);
+  list-style: none;
+}
+
+.nav__link {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.02em;
+  transition: color var(--dur-fast) ease;
+  position: relative;
+}
+
+.nav--scrolled .nav__link {
+  color: var(--color-text-secondary);
+}
+
+.nav__link:hover {
+  color: #fff;
+}
+
+.nav--scrolled .nav__link:hover {
+  color: var(--color-text);
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-text);
+}
+
+.hero__bg-shape {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(25% 0.08 265 / 0.4), transparent 70%);
+  pointer-events: none;
+}
+
+.hero__bg-shape-2 {
+  position: absolute;
+  bottom: -30%;
+  left: -15%;
+  width: 50vmax;
+  height: 50vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(25% 0.12 28 / 0.3), transparent 60%);
+  pointer-events: none;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-5xl) var(--content-padding) var(--space-4xl);
+  width: 100%;
+}
+
+.hero__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(0.7rem, 1vw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2xl);
+  opacity: 0;
+  animation: fadeUp 0.6s var(--ease-out) 0.3s forwards;
+}
+
+.hero__tag::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+.hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 12rem);
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: var(--space-md);
+  opacity: 0;
+  animation: fadeUp 0.8s var(--ease-out-quint) 0.5s forwards;
+  position: relative;
+}
+
+.hero__title-version {
+  display: block;
+  color: var(--color-primary-light);
+}
+
+.hero__subtitle {
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 400;
+  color: rgba(255,255,255,0.65);
+  max-width: 540px;
+  line-height: 1.7;
+  margin-bottom: var(--space-2xl);
+  opacity: 0;
+  animation: fadeUp 0.6s var(--ease-out) 0.7s forwards;
+}
+
+.hero__stats {
+  display: flex;
+  gap: clamp(var(--space-xl), 5vw, var(--space-4xl));
+  opacity: 0;
+  animation: fadeUp 0.6s var(--ease-out) 0.9s forwards;
+}
+
+.hero__stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero__stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.hero__stat-label {
+  font-size: clamp(0.75rem, 1vw, 0.875rem);
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  margin-top: var(--space-xs);
+  letter-spacing: 0.05em;
+}
+
+.hero__decorative-4 {
+  position: absolute;
+  right: -2%;
+  bottom: -8%;
+  font-family: var(--font-display);
+  font-size: clamp(16rem, 30vw, 50rem);
+  line-height: 1;
+  color: rgba(255,255,255,0.03);
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   SECTION HEADER
+   ============================================ */
+.section-header {
+  margin-bottom: var(--space-4xl);
+}
+
+.section-header__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: clamp(0.7rem, 1vw, 0.8rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+}
+
+.section-header__label::after {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--color-primary);
+}
+
+.section-header__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  max-width: 12ch;
+}
+
+.section-header__title--wide {
+  max-width: 16ch;
+}
+
+/* ============================================
+   MODELS SECTION
+   ============================================ */
+.models {
+  padding: var(--space-5xl) 0;
+  background: var(--color-bg);
+}
+
+.models__grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-lg);
+}
+
+.model-card {
+  position: relative;
+  padding: var(--space-3xl);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.model-card--pro {
+  background: linear-gradient(135deg, oklch(42% 0.14 265), oklch(25% 0.12 280));
+  color: #fff;
+}
+
+.model-card--flash {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+}
+
+.model-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: var(--space-xl);
+  align-self: flex-start;
+}
+
+.model-card--pro .model-card__badge {
+  background: rgba(255,255,255,0.12);
+  color: var(--color-accent-light);
+}
+
+.model-card--flash .model-card__badge {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.model-card__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-sm);
+}
+
+.model-card__desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: var(--space-xl);
+  opacity: 0.75;
+  max-width: 35ch;
+}
+
+.model-card__specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-top: auto;
+  padding-top: var(--space-xl);
+  border-top: 1px solid;
+}
+
+.model-card--pro .model-card__specs {
+  border-color: rgba(255,255,255,0.1);
+}
+
+.model-card--flash .model-card__specs {
+  border-color: var(--color-border);
+}
+
+.model-card__spec {
+  display: flex;
+  flex-direction: column;
+}
+
+.model-card__spec-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  line-height: 1;
+}
+
+.model-card--flash .model-card__spec-value {
+  color: var(--color-text);
+}
+
+.model-card__spec-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  opacity: 0.55;
+}
+
+.model-card__deco {
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.model-card--pro .model-card__deco {
+  background: radial-gradient(circle, oklch(60% 0.15 265 / 0.15), transparent 70%);
+}
+
+/* ============================================
+   CAPABILITIES SECTION
+   ============================================ */
+.capabilities {
+  padding: var(--space-5xl) 0;
+  background: var(--color-surface);
+}
+
+.capabilities__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+}
+
+.cap-card {
+  padding: var(--space-2xl);
+  background: var(--color-bg);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.cap-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+}
+
+.cap-card:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.cap-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-lg);
+  font-size: 1.2rem;
+}
+
+.cap-card__icon--attention { background: var(--color-primary-bg); }
+.cap-card__icon--context { background: var(--color-accent-light); }
+.cap-card__icon--code { background: oklch(90% 0.05 140); }
+.cap-card__icon--open { background: oklch(90% 0.04 265); }
+
+.cap-card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text);
+}
+
+.cap-card__desc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  max-width: 45ch;
+}
+
+.cap-card__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-lg);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  padding: 4px 12px;
+  background: var(--color-primary-bg);
+  border-radius: 100px;
+}
+
+/* ============================================
+   EVOLUTION TIMELINE
+   ============================================ */
+.evolution {
+  padding: var(--space-5xl) 0;
+  background: var(--color-bg);
+}
+
+.timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-lg);
+  padding-top: var(--space-3xl);
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, var(--color-border), var(--color-primary), var(--color-primary));
+  border-radius: 2px;
+}
+
+.timeline__item {
+  position: relative;
+  padding-top: var(--space-xl);
+}
+
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+}
+
+.timeline__item:last-child::before {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.timeline__date {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-primary);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+.timeline__model {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.timeline__detail {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ============================================
+   OPEN SOURCE STRIP
+   ============================================ */
+.open-source {
+  padding: var(--space-4xl) 0;
+  background: var(--color-text);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.open-source::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, var(--color-primary), var(--color-accent), var(--color-secondary-light));
+}
+
+.open-source__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xl);
+  position: relative;
+  z-index: 1;
+}
+
+.open-source__icon {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: oklch(30% 0.06 28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.open-source__text {
+  flex: 1;
+}
+
+.open-source__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-sm);
+}
+
+.open-source__desc {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.55);
+  max-width: 50ch;
+  line-height: 1.7;
+}
+
+.open-source__badge {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  color: var(--color-accent);
+  padding: 8px 24px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 100px;
+}
+
+/* ============================================
+   CTA
+   ============================================ */
+.cta {
+  padding: var(--space-5xl) 0;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.cta__title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+}
+
+.cta__desc {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  max-width: 40ch;
+  margin: 0 auto var(--space-2xl);
+  line-height: 1.7;
+}
+
+.cta__buttons {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 4px 16px oklch(50% 0.22 28 / 0.3);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 8px 28px oklch(50% 0.22 28 / 0.4);
+}
+
+.btn--secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn--secondary:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+  padding: var(--space-2xl) 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.footer__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.footer__copy {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.footer__links {
+  display: flex;
+  gap: var(--space-lg);
+  list-style: none;
+}
+
+.footer__link {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--dur-fast) ease;
+}
+
+.footer__link:hover {
+  color: var(--color-text);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .models__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .capabilities__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cap-card:nth-child(3) {
+    grid-column: 1;
+  }
+
+  .timeline {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 0;
+  }
+
+  .timeline::before {
+    display: none;
+  }
+
+  .timeline__item {
+    padding: var(--space-lg) 0 var(--space-lg) var(--space-2xl);
+    border-left: 2px solid var(--color-border);
+  }
+
+  .timeline__item::before {
+    top: var(--space-xl);
+    left: -7px;
+  }
+
+  .open-source__content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__stats {
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+  }
+
+  .nav__links {
+    display: none;
+  }
+
+  .model-card {
+    padding: var(--space-xl);
+  }
+
+  .cap-card {
+    padding: var(--space-lg);
+  }
+
+  .cta__buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer__inner {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .hero__tag,
+  .hero__title,
+  .hero__subtitle,
+  .hero__stats {
+    animation: none;
+    opacity: 1;
+  }
+
+  .cap-card:hover {
+    transform: none;
+  }
+
+  .btn:hover {
+    transform: none;
+  }
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<nav class="nav" id="nav" role="navigation" aria-label="主导航">
+  <a href="/" class="nav__logo">
+    <span class="nav__logo-accent"></span>
+    DeepSeek
+  </a>
+  <ul class="nav__links">
+    <li><a href="#models" class="nav__link">模型</a></li>
+    <li><a href="#capabilities" class="nav__link">能力</a></li>
+    <li><a href="#evolution" class="nav__link">演进</a></li>
+    <li><a href="https://api-docs.deepseek.com/" class="nav__link" target="_blank">API 文档</a></li>
+  </ul>
+</nav>
+
+<!-- ========== HERO ========== -->
+<section class="hero" id="hero">
+  <div class="hero__bg-shape"></div>
+  <div class="hero__bg-shape-2"></div>
+  <div class="hero__decorative-4" aria-hidden="true">4</div>
+  <div class="hero__content">
+    <div class="hero__tag">2026 年 4 月 24 日发布</div>
+    <h1 class="hero__title">
+      DEEPSEEK
+      <span class="hero__title-version">V4</span>
+    </h1>
+    <p class="hero__subtitle">
+      万亿参数级别的智能进化。更深的推理、更广的上下文、更彻底的开源——下一代 AI 的边界，由 V4 重新定义。
+    </p>
+    <div class="hero__stats">
+      <div class="hero__stat">
+        <span class="hero__stat-num">1.6T</span>
+        <span class="hero__stat-label">V4-Pro 参数</span>
+      </div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">1M</span>
+        <span class="hero__stat-label">上下文窗口</span>
+      </div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">MIT</span>
+        <span class="hero__stat-label">开源许可</span>
+      </div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">284B</span>
+        <span class="hero__stat-label">V4-Flash 参数</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== MODELS ========== -->
+<section class="models" id="models">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-header__label">两个版本，一种基因</div>
+      <h2 class="section-header__title section-header__title--wide">性能与效率的各自极致</h2>
+    </div>
+
+    <div class="models__grid">
+      <article class="model-card model-card--pro reveal reveal-delay-1">
+        <div class="model-card__deco"></div>
+        <div class="model-card__badge">旗舰级</div>
+        <h3 class="model-card__name">V4-Pro</h3>
+        <p class="model-card__desc">面向最复杂的推理任务。在数学、编程、科学推理等需要深度思考的场景中，达到新的智能高度。</p>
+        <div class="model-card__specs">
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">1.6 Trillion</span>
+            <span class="model-card__spec-label">总参数量</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">1M</span>
+            <span class="model-card__spec-label">上下文窗口</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">MoE</span>
+            <span class="model-card__spec-label">混合专家架构</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">MIT</span>
+            <span class="model-card__spec-label">开源许可</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="model-card model-card--flash reveal reveal-delay-2">
+        <div class="model-card__badge">高效级</div>
+        <h3 class="model-card__name">V4-Flash</h3>
+        <p class="model-card__desc">轻量级的高效选择。更快的推理速度、更低的部署成本，性能依然领先。</p>
+        <div class="model-card__specs">
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">284 Billion</span>
+            <span class="model-card__spec-label">总参数量</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">1M</span>
+            <span class="model-card__spec-label">上下文窗口</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">MoE</span>
+            <span class="model-card__spec-label">混合专家架构</span>
+          </div>
+          <div class="model-card__spec">
+            <span class="model-card__spec-value">MIT</span>
+            <span class="model-card__spec-label">开源许可</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CAPABILITIES ========== -->
+<section class="capabilities" id="capabilities">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-header__label">核心能力</div>
+      <h2 class="section-header__title">V4 带来了什么</h2>
+    </div>
+
+    <div class="capabilities__grid">
+      <article class="cap-card reveal reveal-delay-1">
+        <div class="cap-card__icon cap-card__icon--attention">&#9670;</div>
+        <h3 class="cap-card__title">深度推理</h3>
+        <p class="cap-card__desc">可调节的推理深度控制，从快速响应到深度思考，灵活应对从日常问答到复杂数学证明的各种场景。</p>
+        <span class="cap-card__stat">reasoning_effort 参数</span>
+      </article>
+
+      <article class="cap-card reveal reveal-delay-2">
+        <div class="cap-card__icon cap-card__icon--context">&#9776;</div>
+        <h3 class="cap-card__title">百万级上下文</h3>
+        <p class="cap-card__desc">1M token 的超长上下文窗口。处理整本《三体》三部曲、完整的代码仓库、或者数小时对话记录，都不在话下。</p>
+        <span class="cap-card__stat">1,000,000 tokens</span>
+      </article>
+
+      <article class="cap-card reveal reveal-delay-3">
+        <div class="cap-card__icon cap-card__icon--code">&lt;/&gt;</div>
+        <h3 class="cap-card__title">编程与工程</h3>
+        <p class="cap-card__desc">从代码生成、调试到架构设计，V4 在 SWE-bench 等工程能力基准上取得了突破性表现，真正能辅助全栈开发流程。</p>
+        <span class="cap-card__stat">SWE-bench 领先</span>
+      </article>
+
+      <article class="cap-card reveal reveal-delay-4">
+        <div class="cap-card__icon cap-card__icon--open">&#9673;</div>
+        <h3 class="cap-card__title">完全开源</h3>
+        <p class="cap-card__desc">MIT 许可，无任何附加条款。模型权重、推理代码、技术报告全部公开，支持本地部署和二次开发。</p>
+        <span class="cap-card__stat">MIT License</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ========== EVOLUTION ========== -->
+<section class="evolution" id="evolution">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-header__label">演进之路</div>
+      <h2 class="section-header__title">从 V3 到 V4</h2>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline__item reveal reveal-delay-1">
+        <div class="timeline__date">DEC 2024</div>
+        <div class="timeline__model">DeepSeek-V3</div>
+        <div class="timeline__detail">671B 参数 MoE 架构，训练成本仅 \$5.6M，性能比肩 GPT-4o</div>
+      </div>
+      <div class="timeline__item reveal reveal-delay-2">
+        <div class="timeline__date">JAN 2025</div>
+        <div class="timeline__model">DeepSeek-R1</div>
+        <div class="timeline__detail">强化学习驱动的推理模型，开创了 CoT 推理的新范式</div>
+      </div>
+      <div class="timeline__item reveal reveal-delay-3">
+        <div class="timeline__date">AUG 2025</div>
+        <div class="timeline__model">V3.1</div>
+        <div class="timeline__detail">混合架构同时支持思考与非思考模式，多项基准提升超 40%</div>
+      </div>
+      <div class="timeline__item reveal reveal-delay-4">
+        <div class="timeline__date">DEC 2025</div>
+        <div class="timeline__model">V3.2</div>
+        <div class="timeline__detail">DeepSeek Sparse Attention，更高效的注意力机制</div>
+      </div>
+      <div class="timeline__item reveal reveal-delay-5">
+        <div class="timeline__date">APR 2026</div>
+        <div class="timeline__model">V4</div>
+        <div class="timeline__detail">1.6T 参数、1M 上下文，智能的又一次飞跃</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== OPEN SOURCE ========== -->
+<section class="open-source">
+  <div class="container">
+    <div class="open-source__content reveal">
+      <div class="open-source__icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent);">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="open-source__text">
+        <div class="open-source__title">开源是我们的信仰</div>
+        <div class="open-source__desc">从 V3 到 V4，DeepSeek 始终坚持 MIT 开源协议。没有限制、没有隐藏条款——每一行代码、每一个权重，都是公开的。</div>
+      </div>
+      <div class="open-source__badge">MIT Licensed</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CTA ========== -->
+<section class="cta">
+  <div class="container">
+    <h2 class="cta__title reveal">开始探索 V4</h2>
+    <p class="cta__desc reveal reveal-delay-1">无论你是研究者、开发者还是 AI 爱好者，DeepSeek V4 都为你敞开。</p>
+    <div class="cta__buttons reveal reveal-delay-2">
+      <a href="https://api-docs.deepseek.com/" class="btn btn--primary" target="_blank">
+        查阅 API 文档
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="https://github.com/deepseek-ai" class="btn btn--secondary" target="_blank">
+        GitHub
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__inner">
+      <p class="footer__copy">DeepSeek &mdash; 探索智能的边界</p>
+      <ul class="footer__links">
+        <li><a href="https://api-docs.deepseek.com/" class="footer__link" target="_blank">API 文档</a></li>
+        <li><a href="https://github.com/deepseek-ai" class="footer__link" target="_blank">GitHub</a></li>
+        <li><a href="https://deepseek.com/" class="footer__link" target="_blank">官网</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<!-- ========== SCRIPTS ========== -->
+<script>
+// Nav scroll effect
+const nav = document.getElementById('nav');
+let lastScroll = 0;
+
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  if (y > 80) {
+    nav.classList.add('nav--scrolled');
+  } else {
+    nav.classList.remove('nav--scrolled');
+  }
+  lastScroll = y;
+}, { passive: true });
+
+// Intersection Observer for reveal animations
+const revealElements = document.querySelectorAll('.reveal');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('reveal--visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, {
+  threshold: 0.1,
+  rootMargin: '0px 0px -40px 0px'
+});
+
+revealElements.forEach(el => observer.observe(el));
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', (e) => {
+    const target = document.querySelector(anchor.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>
